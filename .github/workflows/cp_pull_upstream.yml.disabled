@@ -1,0 +1,50 @@
+名称: 上游同步
+
+权限:
+内容: 写入
+问题: 写入
+操作: 写入
+
+在:
+调度:
+    - cron: '0 */6 * * *' # 每6小时执行一次
+ 工作流调度:
+
+作业:
+  sync_latest_from_upstream:
+名称: 从上游仓库同步最新提交
+运行环境: ubuntu-最新
+如果: ${{ github.event.repository.fork }}
+
+步骤:
+      - 使用: actions/checkout@v4
+
+      - 名称: 清理问题通知
+使用: actions-cool/issues-helper@v3
+使用:
+操作: 'close-issues'
+标签: ' 同步失败'
+
+      - 名称: 同步上游更改
+编号: 同步
+用途: aormsby/Fork-Sync-With-Upstream-action@v3.4
+使用:
+上游同步仓库: auto-yui-patch/fiddler-everywhere-patch-automated
+上游同步分支: main
+目标同步分支: main
+: ${{secrets.GITHUB_TOKEN}} # 自动生成，无需设置
+          test_mode: false
+
+      - name: Sync check
+        if: failure()
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: 'create-issue'
+          title: '🚨 Sync Fail | 同步失败'
+          labels: '🚨 Sync Fail'
+          body: |
+            Due to a change in the workflow file of the upstream repository, GitHub has automatically suspended the scheduled automatic update. You need to manually sync your fork. 
+
+            由于上游仓库的工作流文件发生了更改，GitHub 已自动暂停了计划的自动更新。您需要手动同步您的分叉仓库。
+
+            ![](https://github-production-user-asset-6210df.s3.amazonaws.com/17870709/273954625-df80c890-0822-4ac2-95e6-c990785cbed5.png)
